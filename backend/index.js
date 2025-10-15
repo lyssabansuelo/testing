@@ -40,18 +40,34 @@ function getBaseUrl(req) {
 // DB_NAME=drugstore
 // DB_PORT=3306
 const dbConfig = {
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'drugstore',
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : (process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT, 10) : 3306),
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 };
 
 console.log('MySQL config:', { host: dbConfig.host, user: dbConfig.user, database: dbConfig.database, port: dbConfig.port });
-const pool = mysql.createPool(dbConfig);
+if (dbConfig.uri) {
+    try {
+        const parsed = new URL(dbConfig.uri);
+        console.log('Using connection URL (MYSQL_URL/DATABASE_URL):', {
+            host: parsed.hostname,
+            database: parsed.pathname ? parsed.pathname.slice(1) : undefined,
+            port: parsed.port || 3306
+        });
+    } catch (e) {
+        console.log('Using connection URL from env, unable to parse for safe logging');
+    }
+}
+
+// Support connection string in DATABASE_URL / MYSQL_URL
+const pool = dbConfig.uri
+    ? mysql.createPool(dbConfig.uri)
+    : mysql.createPool(dbConfig);
 
 
 // Test database connection
